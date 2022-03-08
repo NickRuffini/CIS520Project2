@@ -20,9 +20,37 @@ void virtual_cpu(ProcessControlBlock_t *process_control_block)
 
 bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
-    UNUSED(ready_queue);
-    UNUSED(result);
-    return false;
+    // param error checks
+    if(!ready_queue || !result){
+        return false;
+    }
+
+    uint32_t s = dyn_array_size(ready_queue);
+    uint32_t runTime = 0;
+    uint32_t turnaroundTime = 0;
+    uint32_t waitingTime = 0;
+
+    ProcessControlBlock_t pcb;
+
+    for(uint32_t i = 0; i < s; i++){
+        waitingTime += runTime;
+        dyn_array_extract_back(ready_queue, (void *)&pcb);
+        runTime += pcb.remaining_burst_time;
+        turnaroundTime += runTime;
+        turnaroundTime -= pcb.arrival; 
+        waitingTime -= pcb.arrival;
+
+        while(pcb.remaining_burst_time > 0){
+            virtual_cpu(&pcb)
+        }
+    }
+
+    // calculations
+    result->average_waiting_time = ((float)waitingTime) / ((float)s);
+    result->average_turnaround_time = ((float)turnaroundTime) / ((float)s);
+    result->total_run_time = runTime;
+     
+    return true;
 }
 
 bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
