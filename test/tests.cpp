@@ -17,6 +17,29 @@ extern "C"
 unsigned int score;
 unsigned int total;
 
+/*
+*
+* TEST CASES
+* bool first_come_first_serve(dyn_array_t *ready_queue, ScheduleResult_t *result)
+*
+*/
+
+TEST (first_come_first_serve, NullReadyQueue){
+    ScheduleResult_t *sr = new ScheduleResult_t;
+    dyn_array_t *array = NULL;
+    bool result = first_come_first_serve(array, sr);
+    ASSERT_EQ(false, result);
+    delete sr;
+}
+
+TEST (first_come_first_serve, NullScheduleResult){
+    ScheduleResult_t *sr = NULL;
+    dyn_array_t *array = dyn_array_create(0, sizeof(ProcessControlBlock_t), NULL);
+    bool result = first_come_first_serve(array, sr);
+    ASSERT_EQ(false, result);
+    dyn_array_destroy(array);
+}
+
 class GradeEnvironment : public testing::Environment 
 {
     public:
