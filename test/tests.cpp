@@ -40,6 +40,48 @@ TEST (first_come_first_serve, NullScheduleResult){
     dyn_array_destroy(array);
 }
 
+/*
+*
+* TEST CASES
+* bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
+*
+*/
+
+TEST (shortest_job_first, NullReadyQueue)
+{
+    ScheduleResult_t* sr = new ScheduleResult_t;
+    dyn_array_t* readyQueue = NULL;
+    bool result = shortest_job_first(readyQueue, sr);
+    ASSERT_EQ(false, result);
+    delete sr;
+}
+
+TEST (shortest_job_first, GoodSchedule)
+{
+    ScheduleResult_t* sr = new ScheduleResult_t;
+    dyn_array_t* readyQueue = dyn_array_create((sizeof(ProcessControlBlock_t)*3), sizeof(ProcessControlBlock_t), NULL);
+    ProcessControlBlock_t* process1 = (ProcessControlBlock_t*)malloc(sizeof(ProcessControlBlock_t));
+    process1->arrival = 1;
+    process1->remaining_burst_time = 10;
+    process1->started = false;
+    dyn_array_push_back(readyQueue, process1);
+    ProcessControlBlock_t* process2 = (ProcessControlBlock_t*)malloc(sizeof(ProcessControlBlock_t));
+    process2->arrival = 4;
+    process2->remaining_burst_time = 5;
+    process2->started = false;
+    dyn_array_push_back(readyQueue, process2);
+    ProcessControlBlock_t* process3 = (ProcessControlBlock_t*)malloc(sizeof(ProcessControlBlock_t));
+    process3->arrival = 6;
+    process3->remaining_burst_time = 1;
+    process3->started = false;
+    dyn_array_push_back(readyQueue, process3);
+    bool result = shortest_job_first(readyQueue, sr);
+    ASSERT_EQ(true, result);
+    ASSERT_EQ(((float)23/3), sr->average_turnaround_time);
+    ASSERT_EQ(((float)7/3), sr->average_waiting_time);
+    ASSERT_EQ((unsigned long)17, sr->total_run_time);
+}
+
 class GradeEnvironment : public testing::Environment 
 {
     public:
