@@ -77,8 +77,8 @@ TEST (shortest_job_first, GoodSchedule)
     dyn_array_push_back(readyQueue, process3);
     bool result = shortest_job_first(readyQueue, sr);
     ASSERT_EQ(true, result);
-    ASSERT_EQ(((float)23/3), sr->average_turnaround_time);
-    ASSERT_EQ(((float)7/3), sr->average_waiting_time);
+    ASSERT_EQ(((float)29/3), sr->average_turnaround_time);
+    ASSERT_EQ(((float)13/3), sr->average_waiting_time);
     ASSERT_EQ((unsigned long)17, sr->total_run_time);
 }
 

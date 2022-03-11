@@ -107,78 +107,67 @@ bool shortest_job_first(dyn_array_t *ready_queue, ScheduleResult_t *result)
                 totalRunTime++;
                 timeWithoutChange++;
                 virtual_cpu(currentPCB);
-                // Now we check to see if there's a PCB that has arrived and has a shorter remaining_burst_time than our currentPCB.
+                // Now, if our process has completed, we find a new PCB to take its place.
                 // This process is similar to the process that we used to select our first PCB.
-                int shortestAvailablePCBIndex = -1; 
-                for (int counter = 0; counter < length; counter++)
-                {
-                    // We iterate through each PCB, checking first if they are not our currentPCB, then checking whether they are already completed.
-                    // We then determine whether they have arrived and finally we check whether our currentPCB is done running.
-                    // If our currentPCB is not done running (it has a remaining_burst_time of >0), then we check if the currently being checked PCB
-                    // has a shorter remaining_burst_time than our currentPCB. 
-                    ProcessControlBlock_t* PCBToCheck = dyn_array_at(ready_queue, counter);
-                    if (!PCBToCheck->started && PCBToCheck->remaining_burst_time > 0 && 
-                        PCBToCheck->arrival <= totalRunTime && 
-                        (currentPCB->remaining_burst_time == 0 || PCBToCheck->remaining_burst_time < currentPCB->remaining_burst_time))
+                if (currentPCB->remaining_burst_time == 0)
+                {       
+                    int shortestAvailablePCBIndex = -1;          
+                    for (int counter = 0; counter < length; counter++)
                     {
-                        // If they meet all of these conditions, then they are a contender for the PCB that we will swap to next.
-                        // If we have not set another possible contender (shortestAvailablePCBIndex is equal to -1), this is stored as the best contender for this iteration.
-                        if (shortestAvailablePCBIndex == -1)
+                        // We iterate through each PCB, checking first if they are not our currentPCB, then checking whether they are already completed.
+                        // We then determine whether they have arrived yet.
+                        ProcessControlBlock_t* PCBToCheck = dyn_array_at(ready_queue, counter);
+                        if (!PCBToCheck->started && PCBToCheck->remaining_burst_time > 0 && 
+                            PCBToCheck->arrival <= totalRunTime)
                         {
-                            shortestAvailablePCBIndex = counter;
-                        }
-                        else
-                        {
-                            // If, however, there is another PCB we've found that meets all of our above requirements, then we will 
-                            // have to compare our previously found PCB with this new contender.
-                            ProcessControlBlock_t* fastestPCB = dyn_array_at(ready_queue, firstPCBIndex);
-                            // If it is faster than the previous PCB we found, its index will be assigned to shortestAvailablePCBIndex.
-                            if (PCBToCheck->remaining_burst_time < fastestPCB->remaining_burst_time)
+                            // If they meet all of these conditions, then they are a contender for the PCB that we will swap to next.
+                            // If we have not set another possible contender (shortestAvailablePCBIndex is equal to -1), this is stored as the best contender for this iteration.
+                            if (shortestAvailablePCBIndex == -1)
                             {
                                 shortestAvailablePCBIndex = counter;
                             }
-                            // In the case of a tie in their remaining_burst_times, the chosen PCB will be the one who has the earliest arrival time, so as to limit turnaround time.
-                            // (In the case of a further tie, the first PCB of the two in ready_queue will be chosen)
-                            else if (PCBToCheck->remaining_burst_time == fastestPCB->remaining_burst_time)
+                            else
                             {
-                                if (PCBToCheck->arrival < fastestPCB->arrival)
+                                // If, however, there is another PCB we've found that meets all of our above requirements, then we will 
+                                // have to compare our previously found PCB with this new contender.
+                                ProcessControlBlock_t* fastestPCB = dyn_array_at(ready_queue, shortestAvailablePCBIndex);
+                                // If it is faster than the previous PCB we found, its index will be assigned to shortestAvailablePCBIndex.
+                                if (PCBToCheck->remaining_burst_time < fastestPCB->remaining_burst_time)
                                 {
                                     shortestAvailablePCBIndex = counter;
+                                }
+                                // In the case of a tie in their remaining_burst_times, the chosen PCB will be the one who has the earliest arrival time, so as to limit turnaround time.
+                                // (In the case of a further tie, the first PCB of the two in ready_queue will be chosen)
+                                else if (PCBToCheck->remaining_burst_time == fastestPCB->remaining_burst_time)
+                                {
+                                    if (PCBToCheck->arrival < fastestPCB->arrival)
+                                    {
+                                        shortestAvailablePCBIndex = counter;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                // If the PCB is completed, we can switch the started value to false as it is now complete, and we can update the totalTurnaroundTime and totalWaitingTime.
-                if (currentPCB->remaining_burst_time == 0)
-                {
+                    // If the PCB is completed, we can switch the started value to false as it is now complete, and we can update the totalTurnaroundTime and totalWaitingTime.
                     currentPCB->started = false;
                     // As turnaround time is always how long a process takes to be completed once it arrives, this should update totalTurnaroundTime correctly.
                     totalTurnaroundTime += (totalRunTime - currentPCB->arrival);
                     // totalWaitingTime can be updated as shown below, as the formula for the waiting time for a specific PCB can be defined as 
                     // The end time of a program - the total time that it was worked on no matter how many attempts it took - its arrival time.
                     totalWaitingTime += (totalRunTime - timeWithoutChange - currentPCB->arrival);
-                }
-                // Now we determine whether a replacement was found by checking shortestAvailablePCBIndex's value.
-                // If it is not its default value of -1, a replacement was found.
-                if (shortestAvailablePCBIndex != -1)
-                {
-                    // We first switch the boolean holding whether the currentPCB is being worked on by the virtual CPU to false as it's about to be switched.
-                    // (We check if it was flipped to false in the above statement).
-                    if (currentPCB->started) currentPCB->started = false;
-                    // If the currentPCB is not complete, we can subtract how long it ran from the totalWaitingTime.
-                    if (currentPCB->remaining_burst_time != 0)
+                    // Now we determine whether a replacement was found by checking shortestAvailablePCBIndex's value.
+                    // If it is not its default value of -1, a replacement was found.
+                    if (shortestAvailablePCBIndex != -1)
                     {
-                        totalWaitingTime -= timeWithoutChange;
+                        // We reset timeWithoutChange as we have now changed the PCB.
+                        timeWithoutChange = 0;
+                        // We then assign the currentPCB to the new PCB and set its start value to true.
+                        currentPCB = dyn_array_at(ready_queue, shortestAvailablePCBIndex);
+                        currentPCB->started = true;
                     }
-                    // We reset timeWithoutChange as we have now changed the PCB.
-                    timeWithoutChange = 0;
-                    // We then assign the currentPCB to the new PCB and set its start value to true.
-                    currentPCB = dyn_array_at(ready_queue, shortestAvailablePCBIndex);
-                    currentPCB->started = true;
                 }
                 // Lastly, we set currentPCBRemainingTime to its new value, whether our PCB was changed or not.
-                currentPCBRemainingTime = currentPCB->remaining_burst_time;    
+                currentPCBRemainingTime = currentPCB->remaining_burst_time; 
             }
             // Calculating average waiting time and turnaround time and assigning these to result, our Schedule_Result_t object.
             result->average_waiting_time = ((float)totalWaitingTime) / ((float)length);
