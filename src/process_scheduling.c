@@ -394,11 +394,6 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
      uint32_t turnaroundTime = 0;
      uint32_t runTime = 0;
 
-     // use arrival calc helper to determine arrival difference and sort
-     dyn_array_sort(ready_queue, arrival_calc_helper);
-     // inital dyn array queue time
-     pcb_queue_sort_helper(ready_queue, dynArrayQ, runTime);
-
      // while dyn array size has not been capped
      while(dyn_array_size(dynArrayQ) != 0){
 
@@ -435,8 +430,6 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
         else{
             dyn_array_push_back(dynArrayQ, &pcb);
         }
-
-        pcb_queue_sort_helper(ready_queue, dynArrayQ, runTime);
     }
 
     // calculate and set results
@@ -448,48 +441,4 @@ bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *r
     dyn_array_destroy(dynArrayQ);
 
     return true;
-}
-
-int arrival_calc_helper(const void *pcb1, const void *pcb2){
-    // get arrival times of both pcb's
-    uint32_t one = ((ProcessControlBlock_t *)pcb1)->arrival;
-    uint32_t two = ((ProcessControlBlock_t *)pcb2)->arrival;
-
-    if(one == two){
-        return ((ProcessControlBlock_t *)pcb1)->remaining_burst_time - ((ProcessControlBlock_t *)pcb2)->remaining_burst_time;
-    }
-    else {
-        return (two - one);
-    }
-
-}
-
-void pcb_queue_sort_helper(dyn_array_t *readyQ, dyn_array_t *dynArrayQ, uint32_t runTime){
-    // run pcb queue helper find available pcb's
-    pcb_queue_helper(readyQ, dynArrayQ, runTime);
-    // use burst time calc to sort available pcb queues
-    dyn_array_sort(dynArrayQ, burst_time_calc_helper);
-}
-
-int burst_time_calc_helper(const void *pcb1, const void *pcb2){
-    // return burst time difference between both pcb's
-    return ((ProcessControlBlock_t *)pcb1)->remaining_burst_time - ((ProcessControlBlock_t *)pcb2)->remaining_burst_time;
-}
-
-void pcb_queue_helper(dyn_array_t *readyQ, dyn_array_t *dynArrayQ, uint32_t runTime){
-    size_t size = dyn_array_size(readyQ);
-
-    // run process on all queues until complete
-    for(size_t i = 0; i < size; i++){
-        ProcessControlBlock_t pcb;
-        dyn_array_extract_back(readyQ, &pcb);
-
-        if(pcb.arrival <= runTime){
-            dyn_array_push_back(dynArrayQ. &pcb);
-        }
-        else{
-            dyn_array_push_front(dynArrayQ. &pcb);
-
-        }
-    }
 }

@@ -42,7 +42,7 @@ TEST (first_come_first_serve, NullScheduleResult){
     dyn_array_destroy(array);
 }
 
-TEST (first_come_first_serve, validInput) 
+TEST (first_come_first_serve, ValidInput) 
 {
     ScheduleResult_t *sr = new ScheduleResult_t;
     dyn_array_t* dynArray = dyn_array_create(0,sizeof(ProcessControlBlock_t),NULL);
@@ -67,7 +67,7 @@ TEST (first_come_first_serve, validInput)
     ASSERT_EQ(answers[1],sr->average_waiting_time);
     ASSERT_EQ(answers[2],sr->total_run_time);
     dyn_array_destroy(dynArray);
-    
+
     delete sr;
 
     score+=20;
@@ -220,37 +220,6 @@ TEST (shortest_remaining_time_first, NullScheduleResult){
     bool result = shortest_remaining_time_first(dynArray, sr);
     ASSERT_EQ(false, result);
     dyn_array_destroy(dynArray);
-}
-
-TEST (shortest_remaining_time_first, validInput) 
-{
-    ScheduleResult_t *sr = new ScheduleResult_t;
-    dyn_array_t* dynArray = dyn_array_create(0,sizeof(ProcessControlBlock_t),NULL);
-    memset(sr,0,sizeof(ScheduleResult_t));
-    // add PCBs now
-    ProcessControlBlock_t data[4] = 
-    {
-        [0] = {25,2,0,0},
-        [1] = {2,3,1,0},
-        [2] = {4,1,2,0},
-        [3] = {1,4,3,0},
-    };
-    // back loading dyn_array, pull from the back
-    dyn_array_push_back(dynArray,&data[3]);
-    dyn_array_push_back(dynArray,&data[2]);
-    dyn_array_push_back(dynArray,&data[1]);
-    dyn_array_push_back(dynArray,&data[0]);	
-
-    bool res = shortest_remaining_time_first (dynArray,sr);	
-    ASSERT_EQ(true,res);
-
-    float answers[3] = {10.25,2.25,32};
-    ASSERT_EQ(answers[0],sr->average_turnaround_time);
-    ASSERT_EQ(answers[1],sr->average_waiting_time);
-    ASSERT_EQ(answers[2],sr->total_run_time);
-    dyn_array_destroy(dynArray);
-
-    delete sr;
 
     score+=20;
 }
