@@ -375,7 +375,121 @@ dyn_array_t *load_process_control_blocks(const char *input_file)
 
 bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
 {
-    UNUSED(ready_queue);
-    UNUSED(result);
-    return false;
+     // param error checking 
+     if(!ready_queue || !result){
+         return false;
+     }
+
+     uint32_t size = dyn_array_size(ready_queue);
+
+     // store initial arrival time in priority
+     for(uint32_t i = 0; i < size; i++){
+         ProcessControlBlock_t * pcbPtr = (ProcessControlBlock_t *)dyn_array_at(ready_queue, i);
+         pcbPtr->priority = pcbPtr->arrival;
+     }
+
+     dyn_array_t *dynArrayQ = dyn_array_create(0, sizeof(ProcessControlBlock_t), NULL);
+
+     uint32_t waitingTime = 0;
+     uint32_t turnaroundTime = 0;
+     uint32_t runTime = 0;
+
+     // use arrival calc helper to determine arrival difference and sort
+     dyn_array_sort(ready_queue, arrival_calc_helper);
+     // inital dyn array queue time
+     pcb_queue_sort_helper(ready_queue, dynArrayQ, runTime);
+
+     // while dyn array size has not been capped
+     while(dyn_array_size(dynArrayQ) != 0){
+
+         ProcessControlBlock_t pcb;
+         dyn_array_extract_front(dynArrayQ, &pcb);
+
+         waitingTime += runTime - pcb.arrival;
+         uint32_t readyQSize = dyn_array_size(ready_queue);
+         uint32_t currentRunTime;
+
+        // if theres remaining space in the ready queue
+        if(readyQSize != 0){
+            uint32_t arrivalNum = ((ProcessControlBlock_t *)dyn_array_at(ready_queue, dyn_array_size(ready_queue) - 1))->arrival;
+            currentRunTime = arrivalNum - runTime;
+        } 
+        else{
+            currentRunTime = pcb.remaining_burst_time;
+        }
+
+        runTime += currentRunTime;
+
+        // while pcb time has started
+        while(currentRunTime > 0){
+            virtual_cpu(&pcb);
+            currentRunTime--;
+        }
+
+        pcb.arrival = runTime;
+
+        if(pcb.remaining_burst_time == 0){
+            // check if pcb has completed and determined the turnaround time with runtime and initial dyn array queue time
+            turnaroundTime += runTime - pcb.priority;
+        }
+        else{
+            dyn_array_push_back(dynArrayQ, &pcb);
+        }
+
+        pcb_queue_sort_helper(ready_queue, dynArrayQ, runTime);
+    }
+
+    // calculate and set results
+    result->average_waiting_time = (float)waitingTime / size;
+    result->average_turnaround_time = (float)turnaroundTime / size;
+    result->total_run_time = runTime;
+
+    // destroy dyn array queue
+    dyn_array_destroy(dynArrayQ);
+
+    return true;
+}
+
+int arrival_calc_helper(const void *pcb1, const void *pcb2){
+    // get arrival times of both pcb's
+    uint32_t one = ((ProcessControlBlock_t *)pcb1)->arrival;
+    uint32_t two = ((ProcessControlBlock_t *)pcb2)->arrival;
+
+    if(one == two){
+        return ((ProcessControlBlock_t *)pcb1)->remaining_burst_time - ((ProcessControlBlock_t *)pcb2)->remaining_burst_time;
+    }
+    else {
+        return (two - one);
+    }
+
+}
+
+void pcb_queue_sort_helper(dyn_array_t *readyQ, dyn_array_t *dynArrayQ, uint32_t runTime){
+    // run pcb queue helper find available pcb's
+    pcb_queue_helper(readyQ, dynArrayQ, runTime);
+    // use burst time calc to sort available pcb queues
+    dyn_array_sort(dynArrayQ, burst_time_calc_helper);
+}
+
+int burst_time_calc_helper(const void *pcb1, const void *pcb2){
+    // return burst time difference between both pcb's
+    return ((ProcessControlBlock_t *)pcb1)->remaining_burst_time - ((ProcessControlBlock_t *)pcb2)->remaining_burst_time;
+}
+
+void pcb_queue_helper(dyn_array_t *readyQ, dyn_array_t *dynArrayQ, uint32_t runTime){
+    size_t size = dyn_array_size(readyQ);
+
+    // run process on all queues until complete
+    for(size_t i = 0; i < size; i++){
+        ProcessControlBlock_t pcb;
+        dyn_array_extract_back(readyQ, &pcb);
+
+        if(pcb.arrival <= runTime){
+            dyn_array_push_back(dynArrayQ. &pcb);
+        }
+        else{
+            dyn_array_push_front(dynArrayQ. &pcb);
+
+        }
+    }
 }

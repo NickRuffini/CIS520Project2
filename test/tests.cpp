@@ -30,6 +30,8 @@ TEST (first_come_first_serve, NullReadyQueue){
     bool result = first_come_first_serve(array, sr);
     ASSERT_EQ(false, result);
     delete sr;
+
+    score += 20;
 }
 
 TEST (first_come_first_serve, NullScheduleResult){
@@ -38,6 +40,37 @@ TEST (first_come_first_serve, NullScheduleResult){
     bool result = first_come_first_serve(array, sr);
     ASSERT_EQ(false, result);
     dyn_array_destroy(array);
+}
+
+TEST (first_come_first_serve, validInput) 
+{
+    ScheduleResult_t *sr = new ScheduleResult_t;
+    dyn_array_t* dynArray = dyn_array_create(0,sizeof(ProcessControlBlock_t),NULL);
+    memset(sr,0,sizeof(ScheduleResult_t));
+    // add PCBs now
+    ProcessControlBlock_t data[3] = 
+    {
+        [0] = {24,2,0,0},
+        [1] = {3,3,0,0},
+        [2] = {3,1,0,0}
+    };
+    // back loading dyn_array, pull from the back
+    dyn_array_push_back(dynArray,&data[2]);
+    dyn_array_push_back(dynArray,&data[1]);
+    dyn_array_push_back(dynArray,&data[0]);	
+
+    bool res = first_come_first_serve (dynArray,sr);	
+    ASSERT_EQ(true,res);
+
+    float answers[3] = {27,17,30};
+    ASSERT_EQ(answers[0],sr->average_turnaround_time);
+    ASSERT_EQ(answers[1],sr->average_waiting_time);
+    ASSERT_EQ(answers[2],sr->total_run_time);
+    dyn_array_destroy(dynArray);
+    
+    delete sr;
+
+    score+=20;
 }
 
 /*
@@ -162,6 +195,64 @@ TEST(load_process_control_blocks, ValidFile) {
     // check d->capacity
     // traverse through d->array and see if it is properly loaded
     // check d->data_size
+}
+
+/*
+*
+* TEST CASES
+* bool shortest_remaining_time_first(dyn_array_t *ready_queue, ScheduleResult_t *result) 
+*
+*/
+
+TEST (shortest_remaining_time_first, NullReadyQueue){
+    ScheduleResult_t *sr = new ScheduleResult_t;
+    dyn_array_t *dynArray = NULL;
+    bool result = shortest_remaining_time_first(dynArray, sr);
+    ASSERT_EQ(false, result);
+    delete sr;
+
+    score += 20;
+}
+
+TEST (shortest_remaining_time_first, NullScheduleResult){
+    ScheduleResult_t *sr = NULL;
+    dyn_array_t *dynArray = dyn_array_create(0, sizeof(ProcessControlBlock_t), NULL);
+    bool result = shortest_remaining_time_first(dynArray, sr);
+    ASSERT_EQ(false, result);
+    dyn_array_destroy(dynArray);
+}
+
+TEST (shortest_remaining_time_first, validInput) 
+{
+    ScheduleResult_t *sr = new ScheduleResult_t;
+    dyn_array_t* dynArray = dyn_array_create(0,sizeof(ProcessControlBlock_t),NULL);
+    memset(sr,0,sizeof(ScheduleResult_t));
+    // add PCBs now
+    ProcessControlBlock_t data[4] = 
+    {
+        [0] = {25,2,0,0},
+        [1] = {2,3,1,0},
+        [2] = {4,1,2,0},
+        [3] = {1,4,3,0},
+    };
+    // back loading dyn_array, pull from the back
+    dyn_array_push_back(dynArray,&data[3]);
+    dyn_array_push_back(dynArray,&data[2]);
+    dyn_array_push_back(dynArray,&data[1]);
+    dyn_array_push_back(dynArray,&data[0]);	
+
+    bool res = shortest_remaining_time_first (dynArray,sr);	
+    ASSERT_EQ(true,res);
+
+    float answers[3] = {10.25,2.25,32};
+    ASSERT_EQ(answers[0],sr->average_turnaround_time);
+    ASSERT_EQ(answers[1],sr->average_waiting_time);
+    ASSERT_EQ(answers[2],sr->total_run_time);
+    dyn_array_destroy(dynArray);
+
+    delete sr;
+
+    score+=20;
 }
 
 class GradeEnvironment : public testing::Environment 
