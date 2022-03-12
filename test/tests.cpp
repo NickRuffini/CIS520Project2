@@ -180,7 +180,7 @@ TEST(load_process_control_blocks, NullInputFile){
 TEST(load_process_control_blocks, ValidFile) {
     const char* pcbfile = "mypcbfile.bin";
     
-    FILE* fp = fopen(pcbfile, "rb");
+    FILE* fp = fopen(pcbfile, "w+");
     uint32_t array[10] = {3,10,0,0,20,0,1,5,0,2};
     fwrite(array, sizeof(array),1,fp);
     fclose(fp);
