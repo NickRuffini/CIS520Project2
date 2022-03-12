@@ -190,9 +190,126 @@ bool priority(dyn_array_t *ready_queue, ScheduleResult_t *result)
 
 bool round_robin(dyn_array_t *ready_queue, ScheduleResult_t *result, size_t quantum) 
 {
-    UNUSED(ready_queue);
-    UNUSED(result);
-    UNUSED(quantum);
+    if (ready_queue != NULL && result != NULL && quantum > 0)
+    {
+        int length = dyn_array_size(ready_queue);
+        if (length > 0)
+        {
+            // Iterates through ready_queue finding the PCB with the earliest arrival time
+            int firstPCBIndex = -1;
+            for (int counter = 0; counter < length; counter++)
+            {
+                // On the first iteration of the loop, the default value of -1 is overridden by the first PCB
+                ProcessControlBlock_t* pcb = dyn_array_at(ready_queue, counter);
+                if (firstPCBIndex == -1)
+                {
+                    firstPCBIndex = counter;
+                }
+                else 
+                {
+                    // Determines whether the current PCB being checked has an earlier arrival time than the stored index's PCB arrival time, 
+                    // when it is earlier than this value the firstPCBIndex is reassigned to the new earliest PCB's index.
+                    ProcessControlBlock_t* currentFirstPCB = dyn_array_at(ready_queue, firstPCBIndex);
+                    if (pcb->arrival < currentFirstPCB->arrival)
+                    {
+                        firstPCBIndex = counter;
+                    }
+                    // In the case of a tie, the firstPCBIndex is assigned to the PCB that first appeared in the ready_queue.
+                }
+            }
+            // Now that we have our first PCB, we can load it onto the virtual CPU.
+            // This requires a bit of initialization at first - we need to ensure the variables for our statistics are accurate.
+            // We also need to create a dyn_array that will act as a queue for our roundrobin queue.
+            ProcessControlBlock_t* currentPCB = dyn_array_at(ready_queue, firstPCBIndex);
+            int currentPCBRemainingTime = currentPCB->remaining_burst_time;
+            unsigned int totalRunTime = currentPCB->arrival;
+            int totalWaitingTime = 0;
+            int totalTurnaroundTime = 0;
+            int timeWithoutChange = 0;
+            currentPCB->started = true;
+            dyn_array_t* PCBQueue = dyn_array_create(length, sizeof(ProcessControlBlock_t), NULL);
+            dyn_array_push_front(PCBQueue, currentPCB);
+            // Lastly, we need to create our quantum variable.
+            int currentQuantum = quantum;
+            // We also need to do a last minute check in case there are PCBs that have the same arrival time as our currentPCB.
+            for (int counter = 0; counter < length; counter++)
+            {
+                ProcessControlBlock_t* newPCB = dyn_array_at(ready_queue, counter);
+                // We check if any PCBs are incomplete and arrived.
+                // We also check to ensure it's not the PCB we already have.
+                if (newPCB->remaining_burst_time > 0 && newPCB->arrival == totalRunTime && !newPCB->started)
+                {
+                    dyn_array_push_back(PCBQueue, newPCB);
+                }
+            }
+            // Now we can start the schedule proper.
+            while (currentPCBRemainingTime > 0)
+            {
+                // Incrementing totalRunTime to ensure that our statistics are accurate.
+                totalRunTime++;
+                timeWithoutChange++;
+                currentQuantum--;
+                virtual_cpu(currentPCB);
+                
+                // We now check if any new processes have arrived and need to be added to the queue.
+                // This is similar to the earlier process.
+                for (int counter = 0; counter < length; counter++)
+                {
+                    ProcessControlBlock_t* newPCB = dyn_array_at(ready_queue, counter);
+                    // We check if any PCBs are incomplete and arrived.
+                    if (newPCB->remaining_burst_time > 0 && newPCB->arrival == totalRunTime)
+                    {
+                        dyn_array_push_back(PCBQueue, newPCB);
+                    }
+                }
+                // We then check if the process has finished, in which case we dequeue it and start the next process.
+                if (currentPCB->remaining_burst_time == 0)
+                {
+                    ProcessControlBlock_t* oldPCB = malloc(sizeof(ProcessControlBlock_t*));
+                    dyn_array_extract_front(PCBQueue, oldPCB);
+                    // As turnaround time is always how long a process takes to be completed once it arrives, this should update totalTurnaroundTime correctly.
+                    totalTurnaroundTime += (totalRunTime - oldPCB->arrival);
+                    // totalWaitingTime can be updated as shown below, as the formula for the waiting time for a specific PCB can be defined as 
+                    // The end time of a program - the total time that it was worked on no matter how many attempts it took - its arrival time.
+                    totalWaitingTime += (totalRunTime - timeWithoutChange - oldPCB->arrival);
+                    if (dyn_array_size(PCBQueue) > 0)
+                    {
+                        currentPCB = dyn_array_front(PCBQueue);
+                        currentPCB->started = true;
+                    }
+                    // We also have to refresh the quantum and the timeWithoutChange fields.
+                    currentQuantum = quantum;
+                    timeWithoutChange = 0;
+                }
+                // Now we determine if the quantum has expired, in which case we pop the first process off the front and move it to the back.
+                if (currentQuantum == 0)
+                {
+                    ProcessControlBlock_t* oldPCB = malloc(sizeof(ProcessControlBlock_t*));
+                    dyn_array_extract_front(PCBQueue, oldPCB);
+                    // Ensures the remaining_burst_time and started values are correct.
+                    oldPCB->remaining_burst_time = currentPCB->remaining_burst_time;
+                    oldPCB->started = true;
+                    dyn_array_push_back(PCBQueue, oldPCB);
+                    // We then start the process at the front of the queue and refresh our quantum.
+                    currentPCB = dyn_array_front(PCBQueue);
+                    if (!currentPCB->started) currentPCB->started = true;
+                    currentQuantum = quantum;
+                    // We then update our totalWaitingTime to subtract how long the process ran, which should always be the quantum.
+                    totalWaitingTime -= timeWithoutChange;
+                    timeWithoutChange = 0;
+                }
+                // Lastly, we set currentPCBRemainingTime to its new value, whether our PCB was changed or not.
+                currentPCBRemainingTime = currentPCB->remaining_burst_time; 
+            }
+            // Calculating average waiting time and turnaround time and assigning these to result, our Schedule_Result_t object.
+            result->average_waiting_time = ((float)totalWaitingTime) / ((float)length);
+            result->average_turnaround_time = ((float)totalTurnaroundTime) / ((float)length);
+            // Also assigning totalRunTime as is, should require no difference.
+            result->total_run_time = totalRunTime;
+            // The algorithm should have executed correctly if it gets to this point.
+            return true;
+        }
+    }
     return false;
 }
 
