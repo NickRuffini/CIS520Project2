@@ -129,6 +129,41 @@ TEST (round_robin, GoodSchedule)
     ASSERT_EQ((unsigned long)22, sr->total_run_time);
 }
 
+/*
+*
+* TEST CASES
+* dyn_array_t *load_process_control_blocks(const char *input_file) 
+*
+*/
+
+TEST(load_process_control_blocks, NullInputFile){    
+    dyn_array_t* process_control_blocks = (dyn_array_t*)load_process_control_blocks(NULL);
+    ASSERT_EQ(NULL, process_control_blocks);
+    free(process_control_blocks);
+    
+    score += 20;
+}
+
+TEST(load_process_control_blocks, ValidFile) {
+    const char* pcbfile = "mypcbfile.bin";
+    
+    FILE* fp = fopen(pcbfile, "rb");
+    uint32_t array[10] = {3,10,0,0,20,0,1,5,0,2};
+    fwrite(array, sizeof(array),1,fp);
+    fclose(fp);
+    
+    dyn_array_t* d = (dyn_array_t*)load_process_control_blocks(pcbfile);
+    ASSERT_NE(nullptr, d);   //NE = not equal
+    
+    free(d);
+    
+    score += 20;
+    
+    // check d->capacity
+    // traverse through d->array and see if it is properly loaded
+    // check d->data_size
+}
+
 class GradeEnvironment : public testing::Environment 
 {
     public:
