@@ -19,8 +19,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    /*
-
     //1. Load process control blocks from binary file passed at the command line into a dyn_array (this is your ready queue).
     dyn_array_t* ready_queue = load_process_control_blocks(argv[1]);
     
@@ -102,8 +100,6 @@ int main(int argc, char **argv)
     
     //3. Clean up any allocations
     free(ready_queue);
-    
-    */
 
     return EXIT_SUCCESS;
 }

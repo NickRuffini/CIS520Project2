@@ -20,6 +20,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 # Create library from dyn_array so we can use it later.
 # REFERENCE: https://cmake.org/cmake/help/latest/command/add_library.html
 add_library(dyn_array SHARED src/dyn_array.c)
+add_library(process_scheduling SHARED src/process_scheduling.c)
 
 
 # Compile the analysis executable.
@@ -31,6 +32,7 @@ add_executable(${PROJECT_NAME}_analysis src/analysis.c)
 # REFERENCE: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
 # Can just use the file we created above and dyn_array as the 2 parameters
 target_link_libraries(${PROJECT_NAME}_analysis dyn_array)
+target_link_libraries(${PROJECT_NAME}_analysis process_scheduling)
 
 
 # Compile the the tester executable.
