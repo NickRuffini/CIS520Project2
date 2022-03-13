@@ -40,38 +40,10 @@ TEST (first_come_first_serve, NullScheduleResult){
     bool result = first_come_first_serve(array, sr);
     ASSERT_EQ(false, result);
     dyn_array_destroy(array);
-}
-
-TEST (first_come_first_serve, ValidInput) 
-{
-    ScheduleResult_t *sr = new ScheduleResult_t;
-    dyn_array_t* dynArray = dyn_array_create(0,sizeof(ProcessControlBlock_t),NULL);
-    memset(sr,0,sizeof(ScheduleResult_t));
-    // add PCBs now
-    ProcessControlBlock_t data[3] = 
-    {
-        [0] = {24,2,0,0},
-        [1] = {3,3,0,0},
-        [2] = {3,1,0,0}
-    };
-    // back loading dyn_array, pull from the back
-    dyn_array_push_back(dynArray,&data[2]);
-    dyn_array_push_back(dynArray,&data[1]);
-    dyn_array_push_back(dynArray,&data[0]);	
-
-    bool res = first_come_first_serve (dynArray,sr);	
-    ASSERT_EQ(true,res);
-
-    float answers[3] = {27,17,30};
-    ASSERT_EQ(answers[0],sr->average_turnaround_time);
-    ASSERT_EQ(answers[1],sr->average_waiting_time);
-    ASSERT_EQ(answers[2],sr->total_run_time);
-    dyn_array_destroy(dynArray);
-
-    delete sr;
 
     score+=20;
 }
+
 
 /*
 *
@@ -180,7 +152,7 @@ TEST(load_process_control_blocks, NullInputFile){
 TEST(load_process_control_blocks, ValidFile) {
     const char* pcbfile = "mypcbfile.bin";
     
-    FILE* fp = fopen(pcbfile, "w+");
+    FILE* fp = fopen(pcbfile, "rb");
     uint32_t array[10] = {3,10,0,0,20,0,1,5,0,2};
     fwrite(array, sizeof(array),1,fp);
     fclose(fp);
